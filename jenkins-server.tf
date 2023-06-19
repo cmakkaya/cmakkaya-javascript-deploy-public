@@ -1,18 +1,9 @@
 /*This terraform file creates a Jenkins Server using JDK 11 on EC2 Instance.
   Jenkins Server is enabled with Git, Docker and Docker Compose,
   AWS CLI Version 2. Jenkins Server will run on Amazon Linux 2 EC2 Instance with
-  custom security group allowing HTTP(80, 8080) and SSH (22) connections from anywhere. 
-  It sets "ecr_jenkins_permission". It uses ami="ami-087c17d1fe0178315" and instance_type="t2.small"
+  custom security group allowing HTTP(80, 8080) and SSH (22) connections from anywhere.
+  It sets "ecr_jenkins_permission". It uses ami= "ami-087c17d1fe0178315" and instance_type="t3.micro". 
 */
-
-terraform {
-  required_providers {
-    aws = {
-      source = "hashicorp/aws"
-      version = "~>4.0"
-    }
-  }
-}
 
 provider "aws" {
   region = "us-east-1"
@@ -21,10 +12,13 @@ provider "aws" {
   //  If you have entered your credentials in AWS CLI before, you do not need to use these arguments.
 }
 
-locals { 
-  key_pair        = "cumhurkey"                       # you need to change this line
-  pem_key_address = "~/Downloads/cumhurkey.pem"       # you need to change this line
+
+locals {
+  key_pair        = "cumhurkey"             # you need to change this line
+  pem_key_address = "~/.ssh/cumhurkey.pem" # you need to change this line
 }
+
+
 
 variable "sg-ports" {
   default = [80, 22, 8080]
@@ -52,6 +46,7 @@ resource "aws_security_group" "ec2-sec-gr" {
   }
 }
 
+
 resource "aws_iam_role" "roleforjenkins" {
   name                = "ecr_jenkins_permission"
   managed_policy_arns = ["arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess", "arn:aws:iam::aws:policy/AdministratorAccess", "arn:aws:iam::aws:policy/AmazonECS_FullAccess"]
@@ -77,7 +72,7 @@ resource "aws_iam_instance_profile" "ec2_profile" {
 
 resource "aws_instance" "jenkins-server" {
   ami           = "ami-087c17d1fe0178315"
-  instance_type = "t2.small"
+  instance_type = "t3.micro"
   key_name      = local.key_pair
   root_block_device {
     volume_size = 16
@@ -124,16 +119,4 @@ resource "aws_instance" "jenkins-server" {
           unzip awscliv2.zip
           ./aws/install
           EOF
-  }
 }
-
-
-
-output "jenkins-dns-url" {
-  value = "http://${aws_instance.jenkins-server.public_ip}:8080"
-}
-
-output "aws-account-id" {
-  value = data.aws_caller_identity.current.account_id
-}
-
